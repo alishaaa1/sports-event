@@ -25,6 +25,8 @@ const EventCard = React.memo(({ event, onSelect, disabled,title, selectedEvents 
         </p>
       </div>
       <Button
+        tabIndex="0"
+        aria-label={selectedEvents && selectedEvents.indexOf(event)!==-1 ? `Deselect event ${event.event_name}` : `Select event ${event.event_name}`}
         onClick={() => onSelect(event)}
         disabled={disabled}
         title={title}

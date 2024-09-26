@@ -158,14 +158,16 @@ const EventListings = () =>{
                     </Button>     
                 </div>
             </EventsContainer>
-            {selectedEvents.length>0 &&
-                <SelectedEventsContainer>
-                    <h3>Selected Events</h3>
-                    {selectedEvents.map((event) => (
-                        <EventCard event={event} title="De-select event" onSelect={deSelectEvent} selectedEvents={selectedEvents}/>
-                    ))}
-                </SelectedEventsContainer>
-            }
+            <div role="status" aria-live="polite">
+                {selectedEvents.length>0 &&
+                    <SelectedEventsContainer>
+                        <h3>Selected Events</h3>
+                        {selectedEvents.map((event) => (
+                            <EventCard event={event} title="De-select event" onSelect={deSelectEvent} selectedEvents={selectedEvents}/>
+                        ))}
+                    </SelectedEventsContainer>
+                }
+            </div>
         </Container>
     )
 }

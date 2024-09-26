@@ -26,14 +26,19 @@ const SearchAndFilter = ({searchTerm, setSearchTerm, category, setCategory, even
 
     return(
         <div>
+            <label htmlFor="search-events">Search Events</label>
             <SearchInput 
+                id = "search-events"
                 type="text"
                 placeholder="Search events"
                 aria-label="Search for events"
                 value={searchTerm}
                 onChange={handleChange}
+                aria-labelledby="search-events"
             /> 
+            <label htmlFor="category-filter">Filter by category</label>
             <FilterSelect
+                id="category-filter"
                 aria-label="Filter by category"
                 value={category}
                 onChange={handleFilterChange}
