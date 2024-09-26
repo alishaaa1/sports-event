@@ -17,11 +17,13 @@ const EventCard = React.memo(({ event, onSelect, disabled,title, selectedEvents 
 
   return (
     <EventCardStyle>
-      <h3>{event.event_name}</h3>
-      <p>Category: {event.event_category}</p>
-      <p>
-        Time: {formatToReadableDate(event.start_time)} - {formatToReadableDate(event.end_time)}
-      </p>
+      <div><h3>{event.event_name}</h3></div>
+      <div><p>Category: {event.event_category}</p></div>
+      <div>
+        <p>
+            Time: {formatToReadableDate(event.start_time)} - {formatToReadableDate(event.end_time)}
+        </p>
+      </div>
       <Button
         onClick={() => onSelect(event)}
         disabled={disabled}

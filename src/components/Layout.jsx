@@ -25,6 +25,8 @@ export const SelectedEventsContainer = styled.div`
 `;
 
 export const EventCardStyle = styled.div`
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
@@ -36,8 +38,28 @@ export const EventCardStyle = styled.div`
     background-color: #ececec;
   }
 
+  div {
+    /* Title */
+    &:nth-child(1) {
+      flex: 1; /* This will make the title take more space */
+      min-width: 0; /* Prevents the content from overflowing */
+    }
+
+    /* Category */
+    &:nth-child(2) {
+      flex: 1; /* This will make the category take less space */
+      min-width: 0; /* Prevents the content from overflowing */
+    }
+
+    /* Time */
+    &:nth-child(3) {
+      flex: 2; /* This will make the time take less space */
+      min-width: 0; /* Prevents the content from overflowing */
+    }
+  }
+
   @media(min-width: 768px) {
-    display: flex;
+    flex-direction: row;
   }
 `;
 
