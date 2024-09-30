@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import styled from "styled-components";
 
 const SearchInput = styled.input`
@@ -22,7 +22,8 @@ const SearchAndFilter = ({searchTerm, setSearchTerm, category, setCategory, even
         setCategory(e.target.value);
     }
 
-    const categories = Array.from(new Set(events.map((event) => event.event_category)));
+    const categories = useMemo(() => { return Array.from(new Set(events.map((event) => event.event_category)));
+    },[events]);
 
     return(
         <div>

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
-import Loader from "./Loader";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+// import Loader from "./Loader";
 import ErrorFallback from "./ErrorFallback";
 import { Button, Container, EventsContainer, SelectedEventsContainer } from "./Layout";
 import SearchAndFilter from "./SearchAndFilter";
 import EventCard from "./EventCard";
+import { Circles } from 'react-loader-spinner';
 
 const API_URLS = {
     1: "https://run.mocky.io/v3/401c62ad-dc49-4aff-aced-1674c9b92e23",
@@ -13,7 +14,6 @@ const API_URLS = {
 
 const EventListings = () =>{
     const [events, setEvents] = useState([]);
-    const [filteredEvents, setFilteredEvents] = useState([]);
     const [error, setError] = useState(false);
     const [loading, setLoading] = useState(false);
     const [selectedEvents, setSelectedEvents] = useState([]);
@@ -79,7 +79,33 @@ const EventListings = () =>{
     }
     },[page]);
 
-    useEffect(()=>{
+    const isTimeConflict = useCallback(
+        (newEvent) => {
+          const newEventStart = new Date(newEvent.start_time);
+          const newEventEnd = new Date(newEvent.end_time);
+    
+          // Loop through selected events to check for conflicts
+          for (const event of selectedEvents) {
+            const eventStart = new Date(event.start_time);
+            const eventEnd = new Date(event.end_time);
+    
+            // Check if the new event conflicts with an already selected event
+            if (newEventStart < eventEnd && newEventEnd > eventStart) {
+              return true; // Conflict found
+            }
+          }
+          return false; // No conflict
+        },
+        [selectedEvents] // Recalculate only when selectedEvents change
+      );
+
+    const selectEvent = useCallback((item) =>{
+        if(selectedEvents.length<3 && !isTimeConflict(item)){
+            setSelectedEvents([...selectedEvents,item]);
+        }
+    },[selectedEvents, isTimeConflict]);
+
+    const filteredEvents = useMemo(()=>{
         let filteredData = events;
         if(searchTerm){
             filteredData = filteredData.filter((event)=>event.event_name.toLowerCase().includes(searchTerm.toLocaleLowerCase()));
@@ -87,34 +113,23 @@ const EventListings = () =>{
         if(category){
             filteredData = filteredData.filter((event)=>event.event_category===category);
         }
-        setFilteredEvents(filteredData);
+        return filteredData;
     },[searchTerm,events, category]);
     
-    if(loading) return <Loader/>;
+    if(loading) return (
+        <div className="loader">
+        <Circles
+          height="80"
+          width="80"
+          color="blue"
+          ariaLabel="loading"
+        />
+      </div>
+    );
     if(error) return <ErrorFallback/>;
-
-    const selectEvent = (item) =>{
-        if(selectedEvents.length<3 && !isTimeConflict(item)){
-            setSelectedEvents([...selectedEvents,item]);
-        }
-    }
 
     const deSelectEvent = (event) =>{
         setSelectedEvents(selectedEvents.filter((e)=>e.id!==event.id));
-    }
-    
-    const isTimeConflict = (newEvent) =>{
-        const newEventStart = new Date(newEvent.start_time);
-        const newEventEnd = new Date(newEvent.end_time);
-        for (const event of selectedEvents) {
-            const eventStart = new Date(event.start_time);
-            const eventEnd = new Date(event.end_time);
-
-            if(newEventStart < eventEnd && newEventEnd > eventStart){
-                return true;
-            }
-        }
-        return false;
     }
 
     const handlePreviousPage = () =>{

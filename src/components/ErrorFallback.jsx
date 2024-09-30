@@ -1,7 +1,7 @@
 import React from "react"
 
 const ErrorFallback = () =>{
-    return <div>Oops! Something went wrong. Please try again later!</div>
+    return <div><p>Oops! Something went wrong. Please try again later!</p></div>
 }
 
 export default ErrorFallback;
