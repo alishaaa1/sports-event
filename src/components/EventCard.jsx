@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, EventCardStyle } from "./Layout";
 
-const EventCard = React.memo(({ event, onSelect, disabled,title, selectedEvents }) => {
+const EventCard = React.memo(({ event, onSelect, disabled,title, buttonTitle }) => {
     const formatToReadableDate = (dateString) =>{
         const date = new Date(dateString);
         const options = {
@@ -26,12 +26,12 @@ const EventCard = React.memo(({ event, onSelect, disabled,title, selectedEvents 
       </div>
       <Button
         tabIndex="0"
-        aria-label={selectedEvents && selectedEvents.indexOf(event)!==-1 ? `Deselect event ${event.event_name}` : `Select event ${event.event_name}`}
+        aria-label={buttonTitle}
         onClick={() => onSelect(event)}
         disabled={disabled}
         title={title}
       >
-        {selectedEvents && selectedEvents.indexOf(event)!==-1 ? 'Deselect' : 'Select'}
+        {buttonTitle}
       </Button>
     </EventCardStyle>
   );

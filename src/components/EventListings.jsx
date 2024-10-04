@@ -1,26 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 // import Loader from "./Loader";
-import ErrorFallback from "./ErrorFallback";
-import { Button, Container, EventsContainer, SelectedEventsContainer } from "./Layout";
+//import ErrorFallback from "./ErrorFallback";
+import { Container, EventsContainer, SelectedEventsContainer } from "./Layout";
 import SearchAndFilter from "./SearchAndFilter";
 import EventCard from "./EventCard";
 import { Circles } from 'react-loader-spinner';
 
-const API_URLS = {
-    1: "https://run.mocky.io/v3/401c62ad-dc49-4aff-aced-1674c9b92e23",
-    2: "https://run.mocky.io/v3/630b9928-29c3-438e-bb73-39bf1e36ccf8",
-    3: "https://run.mocky.io/v3/5f06a06f-d05e-49df-870c-021035130995"
-  };
-
 const EventListings = () =>{
     const [events, setEvents] = useState([]);
-    const [error, setError] = useState(false);
+    const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [selectedEvents, setSelectedEvents] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [category, setCategory] = useState("");
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(3);
+    //const [page, setPage] = useState(1);
+    //const [totalPages, setTotalPages] = useState(3);
 
     const cacheDataInSessionStorage = (key, data, expirationTimeInMinutes) => {
         const cacheEntry = {
@@ -45,39 +39,43 @@ const EventListings = () =>{
       
     useEffect(()=>{
          // Usage: Retrieve the cached data and check if expired
-        const cachedData = getCachedDataFromSessionStorage(`page-${page}`);
+        const cachedData = getCachedDataFromSessionStorage("events");
         if(cachedData) setEvents(cachedData);
         else{
         setLoading(true);
-        fetch(API_URLS[page])
+        setError(null);
+        fetch('https://run.mocky.io/v3/47844f0d-e958-459a-b50e-b65f7d6783e5')
         .then((response)=>{
             if (!response.ok) {
-                throw new Error("Network response was not ok!");
-              }
+                if (response.status >= 400 && response.status < 500) {
+                  throw new Error(`Client Error ${response.status}: ${response.statusText}`);
+                } else if (response.status >= 500) {
+                  throw new Error(`Server Error ${response.status}: ${response.statusText}`);
+                }
+            }
             return response.json();
         })
         .then((data)=>{
             if (!data || !data.events || !Array.isArray(data.events)) {
                 throw new Error("Malformed response: missing events");
               }      
-            if(data && data.events){
-                cacheDataInSessionStorage(`page-${page}`, data.events, 60);
-                setEvents(data.events);
-                setTotalPages(data.totalPages);
-                setError(false);
-            }else{
-                throw new Error("No events available");
-            }
+            cacheDataInSessionStorage("events", data.events, 60);
+            setEvents(data.events);
+            setError(null);
         })
         .catch((error)=>{
-            console.error('Fetch error:', error);
-            setError(true);
+            if (error.name === 'TypeError') {
+                setError('Network error: Unable to reach the API. Please check your internet connection.');
+              } else {
+                setError(error.message);
+              }
+              console.error("Error fetching events:", error);
         })
         .finally(()=>{
             setLoading(false);
         })
     }
-    },[page]);
+    },[]);
 
     const isTimeConflict = useCallback(
         (newEvent) => {
@@ -105,6 +103,17 @@ const EventListings = () =>{
         }
     },[selectedEvents, isTimeConflict]);
 
+    const groupSelectedEvents = useMemo(()=>{
+        return selectedEvents.reduce((group,event)=>{
+            const category = event.event_category;
+            if(!group[category]){
+                group[category] = [];
+            }
+            group[category].push(event);
+            return group;
+        },{})
+    },[selectedEvents]);
+
     const filteredEvents = useMemo(()=>{
         let filteredData = events;
         if(searchTerm){
@@ -126,19 +135,28 @@ const EventListings = () =>{
         />
       </div>
     );
-    if(error) return <ErrorFallback/>;
+
+    if(error) {
+        console.log(`${error.message}`)
+        return (
+            <div style={{ color: 'red', padding: '20px', border: '1px solid red', borderRadius: '5px' }}>
+                <h2>Oops! Something went wrong.</h2>
+                <p>{error.message}</p>
+            </div>
+        )
+    };
 
     const deSelectEvent = (event) =>{
         setSelectedEvents(selectedEvents.filter((e)=>e.id!==event.id));
     }
 
-    const handlePreviousPage = () =>{
-        if(page>1) setPage(page-1);
-    }
+    // const handlePreviousPage = () =>{
+    //     if(page>1) setPage(page-1);
+    // }
 
-    const handleNextPage = () =>{
-        if(page<totalPages) setPage(page+1);
-    }
+    // const handleNextPage = () =>{
+    //     if(page<totalPages) setPage(page+1);
+    // }
 
     return (
         <Container>
@@ -157,13 +175,13 @@ const EventListings = () =>{
                         const disabledButton = conflict || selectedEvents.length>=3;
                         const tooltipMessage = conflict ? "Time conflict with another event" : selectedEvents.length>=3 ? "You can only select upto 3 events" : "Select event"
                         return (
-                            <EventCard event={event} title={tooltipMessage} disabled={disabledButton} onSelect={selectEvent}/>
+                            <EventCard event={event} title={tooltipMessage} disabled={disabledButton} onSelect={selectEvent} buttonTitle="Select"/>
                         );
                     }) : (
                     <p>No filtered events! </p>
                 )}
 
-                <div>
+                {/* <div>
                     <Button onClick={handlePreviousPage} disabled={page === 1}>
                         Previous 
                     </Button>
@@ -171,18 +189,27 @@ const EventListings = () =>{
                     <Button onClick={handleNextPage} disabled={page === totalPages}>
                         Next
                     </Button>     
-                </div>
+                </div> */}
             </EventsContainer>
-            <div role="status" aria-live="polite">
-                {selectedEvents.length>0 &&
-                    <SelectedEventsContainer>
-                        <h3>Selected Events</h3>
-                        {selectedEvents.map((event) => (
-                            <EventCard event={event} title="De-select event" onSelect={deSelectEvent} selectedEvents={selectedEvents}/>
-                        ))}
-                    </SelectedEventsContainer>
-                }
-            </div>
+            {Object.keys(groupSelectedEvents).length > 0 && (
+                <SelectedEventsContainer>
+                    <h3>Selected Events by Category</h3>
+                    {Object.keys(groupSelectedEvents).map((category) => (
+                        <div role="region" aria-live="polite" key={category}>
+                            <h4>{category}</h4>
+                            {groupSelectedEvents[category].map((event) => (
+                                <EventCard
+                                    key={event.id}
+                                    event={event}
+                                    title="De-select event"
+                                    onSelect={deSelectEvent}
+                                    buttonTitle="Deselect"
+                                />
+                            ))}
+                        </div>
+                    ))}
+                </SelectedEventsContainer>
+            )}
         </Container>
     )
 }

@@ -1,7 +1,13 @@
-import React from "react"
+import React from 'react';
 
-const ErrorFallback = () =>{
-    return <div><p>Oops! Something went wrong. Please try again later!</p></div>
-}
+// ErrorFallback component to display a readable error message
+const ErrorFallback = ({ message }) => {
+  return (
+    <div style={{ color: 'red', padding: '20px', border: '1px solid red', borderRadius: '5px' }}>
+      <h2>Oops! Something went wrong.</h2>
+      <p>{message}</p>
+    </div>
+  );
+};
 
 export default ErrorFallback;

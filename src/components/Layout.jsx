@@ -12,13 +12,11 @@ export const Container = styled.div`
 `;
 
 export const EventsContainer = styled.div`
-  flex: 1.5;
   margin-right: 1rem;
 `;
 
 export const SelectedEventsContainer = styled.div`
     margin-top: 1rem;
-    flex:1;
     @media (min-width: 768px) {
     margin-top: 0;
   }

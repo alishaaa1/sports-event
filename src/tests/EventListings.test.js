@@ -1,5 +1,7 @@
-import App from "../App";
-import { render,screen, fireEvent, waitFor } from "@testing-library/react";
+import EventListings from "../components/EventListings";
+import { render,screen, waitFor } from "@testing-library/react";
+import userEvent from '@testing-library/user-event';
+import ErrorFallback from "../components/ErrorFallback";
 
 const mockEvents = [
     {
@@ -41,19 +43,19 @@ const mockEvents = [
 
 describe("Sports Events Open for Registration", ()=>{
     beforeEach(() => {
-        global.fetch = jest.fn(() =>
-          Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ events: mockEvents }),
-          })
-        );
-      });
+      global.fetch = jest.fn();
+    });
     
       afterEach(() => {
-        jest.clearAllMocks(); // Clean up the mocks after each test
+        global.fetch.mockClear(); // Clean up the mocks after each test
       });
+
     test("renders events correctly", async()=>{
-        render (<App/>);
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ events: mockEvents, totalPages: 3 })
+      });
+        render (<EventListings/>);
         expect(screen.getByText(/loading/i)).toBeInTheDocument();
 
         await waitFor(()=>{
@@ -63,8 +65,12 @@ describe("Sports Events Open for Registration", ()=>{
     });
 
     test("displays loading spinner when fetching data fro the first time", async()=>{
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ events: mockEvents, totalPages: 3 })
+      });
         sessionStorage.clear();
-        render(<App/>);
+        render(<EventListings/>);
         expect(screen.getByText(/loading/i)).toBeInTheDocument();
 
         await waitFor(()=>{
@@ -73,23 +79,35 @@ describe("Sports Events Open for Registration", ()=>{
     });
 
     test("disables select button when there is a time conflict", async()=>{
-        render(<App/>);
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ events: mockEvents, totalPages: 3 })
+      });
+        render(<EventListings/>);
         const fireEventButton = await screen.findAllByText(/select/i, {selector:'button'});
-        fireEvent.click(fireEventButton[0]);
+        await userEvent.click(fireEventButton[0]);
         expect(fireEventButton[2]).toBeDisabled();
         expect(fireEventButton[2]).toHaveAttribute('title', 'Time conflict with another event');
     });
 
     test("allows selecting events", async()=>{
-        render(<App/>);
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ events: mockEvents, totalPages: 3 })
+      });
+        render(<EventListings/>);
         const fireEventButton = await screen.findAllByText(/select/i, {selector:'button'});
-        fireEvent.click(fireEventButton[0]);
+        userEvent.click(fireEventButton[0]);
         const selectedEvent = screen.getAllByText(/Butterfly 100M/i);
         expect(selectedEvent[0]).toBeInTheDocument();
     });
 
     test('limits selection to a maximum of 3 events', async () => {
-        render(<App />);
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ events: mockEvents, totalPages: 3 })
+      });
+        render(<EventListings />);
       
         // Wait for the events to be rendered
         const buttons = await screen.findAllByText(/select/i, { selector: 'button' });
@@ -98,10 +116,10 @@ describe("Sports Events Open for Registration", ()=>{
         console.log('Number of Select buttons:', buttons.length);
       
         // Select the first three events
-        fireEvent.click(buttons[0]);
-        fireEvent.click(buttons[1]);
-        fireEvent.click(buttons[2]);
-        fireEvent.click(buttons[3]);
+        await userEvent.click(buttons[0]);
+        await userEvent.click(buttons[1]);
+        await userEvent.click(buttons[2]);
+        await userEvent.click(buttons[3]);
       
         console.log('Buttons after selecting 3 events:', buttons);
       
@@ -116,7 +134,11 @@ describe("Sports Events Open for Registration", ()=>{
       });
       
       test('filters events based on search and category', async () => {
-        render(<App />);
+        global.fetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ events: mockEvents, totalPages: 3 })
+        });
+        render(<EventListings />);
     
         // Wait for events to load
         await waitFor(() => {
@@ -126,7 +148,8 @@ describe("Sports Events Open for Registration", ()=>{
     
         // Search for an event (e.g., "Backstroke")
         const searchInput = screen.getByPlaceholderText(/search events/i);
-        fireEvent.change(searchInput, { target: { value: 'Backstroke' } });
+          await userEvent.type(searchInput , 'Backstroke' );
+
     
         // Check if only the searched event is visible
         expect(screen.getByText(/Backstroke 100M/i)).toBeInTheDocument();
@@ -134,17 +157,67 @@ describe("Sports Events Open for Registration", ()=>{
       });
 });
 
-// describe("Fallback aand error message in case of API or network failure",()=>{
-//     afterEach(() => {
-//         jest.resetAllMocks();
-//     });
-//     global.fetch = jest.fn(() =>
-//         Promise.reject(new Error('Network error'))
-//     );
+describe('EventListings error handling', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn();
+  });
+  // Reset the fetch mock between tests
+  afterEach(() => {
+    fetch.mockClear();
+  });
 
-//     test('shows an error message when API call fails', async () => {
-//         render(<App />);
-//         const errorMessage = await waitFor(()=> screen.findByText(/Oops! Something went wrong. Please try again later!/i));
-//         expect(errorMessage).toBeInTheDocument();
-//     });
-// })
+  test('displays network error message when API call fails due to network issues', async () => {
+    // Simulate a network error
+    fetch.mockRejectedValueOnce(new TypeError('Network error'));
+
+    render(<EventListings/>);
+
+    // Wait for the error message to appear
+    const errorMessage = await screen.findByText(/Network error: Unable to reach the API. Please check your internet connection./i);
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  test('displays client error message for 404 Not Found', async () => {
+    // Simulate a 404 error
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+    });
+
+    render(<EventListings/>);
+
+    // Wait for the client error message to appear
+    const errorMessage = await screen.findByText(/client error 404: not found/i);
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  test('displays server error message for 500 Internal Server Error', async () => {
+    // Simulate a 500 error
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    render(<EventListings/>);
+
+    // Wait for the server error message to appear
+    const errorMessage = await screen.findByText(/server error 500: internal server error/i);
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  test('displays invalid response error when API response is missing "events" field', async () => {
+    // Simulate an invalid API response (missing "events" field)
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ invalidField: 'unexpected data' }),
+    });
+
+    render(<EventListings/>);
+
+    // Wait for the invalid response structure error to appear
+    const errorMessage = await screen.findByText(/Malformed response: missing events/i);
+    expect(errorMessage).toBeInTheDocument();
+   });
+ });
